@@ -8,28 +8,25 @@ from aiogram.enums.chat_type import ChatType
 from aiogram import F
 from aiogram.client.default import DefaultBotProperties
 
-BOT_TOKEN = "8024704510:AAHG-t2rZsuyia_4tPXhSVkpgObbXFAVZcA"
+BOT_TOKEN = "8024704510:AAFM5hJCkAKQDkYo23SF-B3XW59vhLWCvUI"
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
 
-# Memory
+# Memory storage
 WIN_STICKERS = []
 CHANNEL_ID = None
-
-# Cooldown storage
+LAST_MULTIPLIER = {}  # chat_id: last multiplier
 USER_COOLDOWNS = {}
-CHAT_COOLDOWNS = {}
 CLICK_COOLDOWN_SECONDS = 10
-CHAT_COOLDOWN_SECONDS = 15
 
-# Fancy multiplier
+# Fancy multiplier converter
 def fancy_multiplier(x):
     normal = "0123456789x."
     fancy = "𝟬𝟭𝟮𝟯𝟰𝟱𝟲𝟳𝟴𝟵𝘅․"
     return "".join(fancy[normal.index(c)] if c in normal else c for c in f"{x}x")
 
-# Prediction text
+# Prediction generator
 def get_prediction():
     emojis = ["🔥", "✈️", "💨", "⚡", "𞥂", "🌪️"]
     actions = ["Aviator Spribe"]
@@ -46,17 +43,21 @@ def get_prediction():
         "<a href='https://bdgslotclub.com/#/register?inviteCode=46377313830'>🚀 Click here to Register</a>"
     )
 
-    return prediction_line + footer
+    return prediction_line + footer, multiplier
 
-# Send prediction with buttons
+# Send prediction and store multiplier
 async def send_prediction(chat_id):
-    keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Pass", callback_data="pass"),
-         InlineKeyboardButton(text="❌ Fail", callback_data="fail")]
-    ])
-    await bot.send_message(chat_id, get_prediction(), reply_markup=keyboard)
+    global LAST_MULTIPLIER
+    prediction_text, multiplier = get_prediction()
+    LAST_MULTIPLIER[chat_id] = multiplier  # Store multiplier for delay use
 
-# Mention in channel triggers prediction
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="✅ Profit", callback_data="pass"),
+         InlineKeyboardButton(text="❌ Crash", callback_data="fail")]
+    ])
+    await bot.send_message(chat_id, prediction_text, reply_markup=keyboard)
+
+# Mention-based prediction in channel
 @dp.message(F.chat.type == ChatType.CHANNEL, F.entities)
 async def handle_mention(message: types.Message):
     for entity in message.entities:
@@ -66,17 +67,17 @@ async def handle_mention(message: types.Message):
                 await send_prediction(message.chat.id)
                 break
 
-# /predict in DM
+# /predict in private
 @dp.message(F.chat.type == ChatType.PRIVATE, F.text == "/predict")
 async def handle_private_predict(message: types.Message):
     await send_prediction(message.chat.id)
 
-# /file command
+# /file command in DM
 @dp.message(F.chat.type == ChatType.PRIVATE, F.text == "/file")
 async def handle_file_command(message: types.Message):
     await message.answer("📎 Send me any sticker, photo, or gif to use as WIN sticker when 'Pass' is clicked.")
 
-# Save sticker/gif
+# Save WIN sticker/gif/photo
 @dp.message(F.chat.type == ChatType.PRIVATE, F.content_type.in_(["sticker", "photo", "animation"]))
 async def save_file_id(message: types.Message):
     global WIN_STICKERS
@@ -87,35 +88,29 @@ async def save_file_id(message: types.Message):
         file_id = message.photo[-1].file_id
     elif message.animation:
         file_id = message.animation.file_id
+
     if file_id:
         WIN_STICKERS.append(file_id)
         await message.reply("✅ File saved!")
     else:
         await message.reply("❌ Unable to save file.")
 
-# Handle Pass / Fail buttons with cooldown
+# Handle button click (Pass/Fail)
 @dp.callback_query(F.data.in_({"pass", "fail"}))
 async def handle_result(callback: types.CallbackQuery):
     chat_id = callback.message.chat.id
     user_id = callback.from_user.id
     current_time = time.time()
 
-    # Group cooldown
-    if chat_id in CHAT_COOLDOWNS and current_time - CHAT_COOLDOWNS[chat_id] < CHAT_COOLDOWN_SECONDS:
-        await callback.answer("⏳ Prediction already running. Please wait.", show_alert=True)
-        return
-
-    # User cooldown
+    # User spam protection
     if user_id in USER_COOLDOWNS and current_time - USER_COOLDOWNS[user_id] < CLICK_COOLDOWN_SECONDS:
         await callback.answer("🕒 Please wait before clicking again.", show_alert=True)
         return
 
-    # Update cooldowns
     USER_COOLDOWNS[user_id] = current_time
-    CHAT_COOLDOWNS[chat_id] = current_time
-
     await callback.answer()
 
+    # If PASS, send win sticker
     if callback.data == "pass" and WIN_STICKERS:
         try:
             sticker = random.choice(WIN_STICKERS)
@@ -123,14 +118,21 @@ async def handle_result(callback: types.CallbackQuery):
         except Exception as e:
             print("⚠️ Failed to send sticker:", e)
 
+    # Delay logic
+    multiplier = LAST_MULTIPLIER.get(chat_id, 2.0)
+    delay_seconds = int(multiplier * 30) if callback.data == "pass" else 10
+
+    await bot.send_message(chat_id, f"⏳ Next prediction in {delay_seconds} seconds...")
+    await asyncio.sleep(delay_seconds)
+
     await send_prediction(chat_id)
 
-# Inline query
+# Inline query support
 @dp.inline_query()
 async def inline_query_handler(inline_query: types.InlineQuery):
     input_text = inline_query.query.lower()
     if "get" in input_text or input_text == "":
-        prediction = get_prediction()
+        prediction, _ = get_prediction()
         result = types.InlineQueryResultArticle(
             id="1",
             title="🎯 Get Aviator Prediction",
@@ -140,7 +142,7 @@ async def inline_query_handler(inline_query: types.InlineQuery):
         )
         await bot.answer_inline_query(inline_query.id, results=[result], cache_time=1)
 
-# /setchannel
+# Set channel command
 @dp.message(F.chat.type == ChatType.PRIVATE, F.text == "/setchannel")
 async def set_channel(message: types.Message):
     global CHANNEL_ID
@@ -152,7 +154,7 @@ async def awaiting_channel_input(message: types.Message):
     CHANNEL_ID = message.text.strip()
     await message.answer(f"✅ Channel set to: <code>{CHANNEL_ID}</code>")
 
-# /sendpredict
+# Send prediction to saved channel
 @dp.message(F.chat.type == ChatType.PRIVATE, F.text == "/sendpredict")
 async def send_prediction_to_channel(message: types.Message):
     if not CHANNEL_ID:
@@ -164,7 +166,7 @@ async def send_prediction_to_channel(message: types.Message):
     except Exception as e:
         await message.reply(f"❌ Failed: {e}")
 
-# Start polling
+# Start polling bot
 async def main():
     await dp.start_polling(bot)
 
