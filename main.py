@@ -8,7 +8,7 @@ from aiogram.enums.chat_type import ChatType
 from aiogram import F
 from aiogram.client.default import DefaultBotProperties
 
-BOT_TOKEN = "8024704510:AAFnYm2FAF_MKNQQcRIgxELTPc6QRvcREd4"
+BOT_TOKEN = "8024704510:AAGVYYi0ppsQr_vsMP6_MbXbl7QsVNfbLJI"
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
@@ -45,17 +45,27 @@ def get_prediction():
 
     return prediction_line + footer, multiplier
 
-# Send prediction and store multiplier
+# Timer function — runs after prediction sent
+async def timer_and_next_prediction(chat_id, multiplier):
+    delay_seconds = int(multiplier * 30)
+    await bot.send_message(chat_id, f"⏳ Next prediction in {delay_seconds} seconds...")
+    await asyncio.sleep(delay_seconds)
+    await send_prediction(chat_id)
+
+# Send prediction and start timer
 async def send_prediction(chat_id):
     global LAST_MULTIPLIER
     prediction_text, multiplier = get_prediction()
-    LAST_MULTIPLIER[chat_id] = multiplier  # Store multiplier for delay use
+    LAST_MULTIPLIER[chat_id] = multiplier
 
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="✅ Profit", callback_data="pass"),
-         InlineKeyboardButton(text="❌ Crash", callback_data="fail")]
+        [InlineKeyboardButton(text="✅ Pass", callback_data="pass"),
+         InlineKeyboardButton(text="❌ Fail", callback_data="fail")]
     ])
     await bot.send_message(chat_id, prediction_text, reply_markup=keyboard)
+
+    # 👇 Start timer immediately after sending prediction
+    asyncio.create_task(timer_and_next_prediction(chat_id, multiplier))
 
 # Mention-based prediction in channel
 @dp.message(F.chat.type == ChatType.CHANNEL, F.entities)
@@ -102,7 +112,7 @@ async def handle_result(callback: types.CallbackQuery):
     user_id = callback.from_user.id
     current_time = time.time()
 
-    # User spam protection
+    # Spam protection
     if user_id in USER_COOLDOWNS and current_time - USER_COOLDOWNS[user_id] < CLICK_COOLDOWN_SECONDS:
         await callback.answer("🕒 Please wait before clicking again.", show_alert=True)
         return
@@ -110,7 +120,7 @@ async def handle_result(callback: types.CallbackQuery):
     USER_COOLDOWNS[user_id] = current_time
     await callback.answer()
 
-    # If PASS, send win sticker
+    # Send win sticker on pass
     if callback.data == "pass" and WIN_STICKERS:
         try:
             sticker = random.choice(WIN_STICKERS)
@@ -118,14 +128,7 @@ async def handle_result(callback: types.CallbackQuery):
         except Exception as e:
             print("⚠️ Failed to send sticker:", e)
 
-    # Delay logic
-    multiplier = LAST_MULTIPLIER.get(chat_id, 2.0)
-    delay_seconds = int(multiplier * 30) if callback.data == "pass" else 10
-
-    await bot.send_message(chat_id, f"⏳ Next prediction in {delay_seconds} seconds...")
-    await asyncio.sleep(delay_seconds)
-
-    await send_prediction(chat_id)
+    # ❌ No delay or new prediction here (handled by prediction timer)
 
 # Inline query support
 @dp.inline_query()
@@ -166,7 +169,7 @@ async def send_prediction_to_channel(message: types.Message):
     except Exception as e:
         await message.reply(f"❌ Failed: {e}")
 
-# Start polling bot
+# Start bot polling
 async def main():
     await dp.start_polling(bot)
 
