@@ -41,7 +41,6 @@ def get_prediction():
 
     return prediction_line + footer
 
-
 # Send prediction with buttons
 async def send_prediction(chat_id):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -83,7 +82,7 @@ async def save_file_id(message: types.Message):
         file_id = message.animation.file_id
     if file_id:
         WIN_STICKERS.append(file_id)
-        await message.reply(f"✅ File saved!")
+        await message.reply("✅ File saved!")
     else:
         await message.reply("❌ Unable to save file.")
 
@@ -115,7 +114,7 @@ async def inline_query_handler(inline_query: types.InlineQuery):
         )
         await bot.answer_inline_query(inline_query.id, results=[result], cache_time=1)
 
-# ✅ /setchannel — Set the channel ID manually from DM
+# /setchannel — Set the channel ID manually from DM
 @dp.message(F.chat.type == ChatType.PRIVATE, F.text == "/setchannel")
 async def set_channel(message: types.Message):
     global CHANNEL_ID
@@ -127,7 +126,7 @@ async def awaiting_channel_input(message: types.Message):
     CHANNEL_ID = message.text.strip()
     await message.answer(f"✅ Channel set to: <code>{CHANNEL_ID}</code>")
 
-# ✅ /sendpredict — Send prediction to saved channel
+# /sendpredict — Send prediction to saved channel
 @dp.message(F.chat.type == ChatType.PRIVATE, F.text == "/sendpredict")
 async def send_prediction_to_channel(message: types.Message):
     if not CHANNEL_ID:
