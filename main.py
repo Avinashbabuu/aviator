@@ -29,7 +29,7 @@ def fancy_multiplier(x):
 
 # Prediction Generator
 def get_prediction():
-    emojis = ["🔥", "✈️", "💨", "⚡", "🪂", "🌪️"]
+    emojis = ["🔥", "✈️", "💨", "⚡", "🢂", "🌪️"]
     actions = ["Aviator Jump", "Aviator Boost", "Aviator Glide", "Aviator Fire", "Aviator Fly", "Aviator Turbo"]
     emoji = random.choice(emojis)
     action = random.choice(actions)
@@ -44,9 +44,19 @@ async def send_prediction(chat_id):
     ])
     await bot.send_message(chat_id, get_prediction(), reply_markup=keyboard)
 
-# /predict command to trigger first prediction (in channel)
-@dp.message(F.chat.type == ChatType.CHANNEL, F.text == "/predict")
-async def predict_cmd(message: types.Message):
+# Handle all messages that mention the bot in a channel
+@dp.message(F.chat.type == ChatType.CHANNEL, F.entities)
+async def handle_mention(message: types.Message):
+    for entity in message.entities:
+        if entity.type == "mention":
+            mentioned_text = message.text[entity.offset:entity.offset + entity.length]
+            if mentioned_text.lower() == f"@{(await bot.me()).username.lower()}":
+                await send_prediction(message.chat.id)
+                break
+
+# Handle /predict in private chat (DM)
+@dp.message(F.chat.type == ChatType.PRIVATE, F.text == "/predict")
+async def handle_private_predict(message: types.Message):
     await send_prediction(message.chat.id)
 
 # Callback for Pass / Fail
@@ -54,11 +64,11 @@ async def predict_cmd(message: types.Message):
 async def handle_result(callback: types.CallbackQuery):
     chat_id = callback.message.chat.id
     await callback.answer()
-    
+
     if callback.data == "pass":
         sticker = random.choice(WIN_STICKERS)
         await bot.send_sticker(chat_id, sticker)
-    
+
     # Send next prediction
     await send_prediction(chat_id)
 
