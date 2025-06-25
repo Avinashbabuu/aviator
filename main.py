@@ -96,6 +96,24 @@ async def handle_result(callback: types.CallbackQuery):
     # Send next prediction
     await send_prediction(chat_id)
 
+# Inline Query handler (when user types @botname get)
+@dp.inline_query()
+async def inline_query_handler(inline_query: types.InlineQuery):
+    input_text = inline_query.query.lower()
+
+    if "get" in input_text or input_text == "":
+        prediction = get_prediction()
+
+        result = types.InlineQueryResultArticle(
+            id="1",
+            title="🎯 Get Aviator Prediction",
+            input_message_content=types.InputTextMessageContent(message_text=prediction),
+            description="Click to post next prediction",
+            thumb_url="https://upload.wikimedia.org/wikipedia/commons/1/14/Aviator_glasses_icon.png"
+        )
+
+        await bot.answer_inline_query(inline_query.id, results=[result], cache_time=1)
+
 # Start the bot
 async def main():
     await dp.start_polling(bot)
