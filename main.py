@@ -8,7 +8,7 @@ from aiogram import F
 from aiogram.client.default import DefaultBotProperties
 
 # ✅ Your Bot Token Here
-BOT_TOKEN = "8024704510:AAHjxDzZRCeqrwkwDkqNO1PSudfcDUxyoWg"
+BOT_TOKEN = "8024704510:AAFvyAZq7-Bg2FJDRr71PS5xd6hB81AvR6Y"
 
 # Start with empty sticker list
 WIN_STICKERS = []
