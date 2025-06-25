@@ -102,20 +102,17 @@ async def inline_query_handler(inline_query: types.InlineQuery):
     input_text = inline_query.query.lower()
 
     if "get" in input_text or input_text == "":
-        await bot.answer_inline_query(
-            inline_query.id,
-            results=[
-                types.InlineQueryResultArticle(
-                    id="1",
-                    title="📲 Tap to start predictions!",
-                    input_message_content=types.InputTextMessageContent(
-                        message_text="✅ To get prediction with buttons, type /predict"
-                    ),
-                    description="Send /predict in chat to get full prediction with Pass/Fail buttons"
-                )
-            ],
-            cache_time=1
+        prediction = get_prediction()
+
+        result = types.InlineQueryResultArticle(
+            id="1",
+            title="🎯 Get Aviator Prediction",
+            input_message_content=types.InputTextMessageContent(message_text=prediction),
+            description="Click to post next prediction",
+            thumb_url="https://upload.wikimedia.org/wikipedia/commons/1/14/Aviator_glasses_icon.png"
         )
+
+        await bot.answer_inline_query(inline_query.id, results=[result], cache_time=1)
 
 # Start the bot
 async def main():
