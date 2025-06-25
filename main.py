@@ -29,7 +29,18 @@ def get_prediction():
     emoji = random.choice(emojis)
     action = random.choice(actions)
     multiplier = round(random.uniform(1.1, 5.0), 2)
-    return f"{emoji} {action}\n{fancy_multiplier(multiplier)}"
+    
+    prediction_line = f"{emoji} <b>{action}</b>\n<b>{fancy_multiplier(multiplier)}</b>"
+
+    footer = (
+        "\n\n<blockquote>🎮 <b>Play at your own risk</b></blockquote>\n"
+        "🛡️ <blockquote>Maintain <b>Level 1 to 3</b></blockquote>\n"
+        "🔗 <b><blockquote>Register with our official link</b>, otherwise <b>hack will not work</b>.</blockquote>\n"
+        "<a href='https://bdgslotclub.com/#/register?inviteCode=46377313830'>🚀 Click here to Register</a>"
+    )
+
+    return prediction_line + footer
+
 
 # Send prediction with buttons
 async def send_prediction(chat_id):
