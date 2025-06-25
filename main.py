@@ -8,7 +8,7 @@ from aiogram.enums.chat_type import ChatType
 from aiogram import F
 from aiogram.client.default import DefaultBotProperties
 
-BOT_TOKEN = "8024704510:AAFM5hJCkAKQDkYo23SF-B3XW59vhLWCvUI"
+BOT_TOKEN = "8024704510:AAFnYm2FAF_MKNQQcRIgxELTPc6QRvcREd4"
 
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 dp = Dispatcher()
