@@ -29,7 +29,7 @@ def fancy_multiplier(x):
 
 # Prediction Generator
 def get_prediction():
-    emojis = ["🔥", "✈️", "💨", "⚡", "🢂", "🌪️"]
+    emojis = ["🔥", "✈️", "💨", "⚡", "𞥂", "🌪️"]
     actions = ["Aviator Jump", "Aviator Boost", "Aviator Glide", "Aviator Fire", "Aviator Fly", "Aviator Turbo"]
     emoji = random.choice(emojis)
     action = random.choice(actions)
@@ -66,8 +66,11 @@ async def handle_result(callback: types.CallbackQuery):
     await callback.answer()
 
     if callback.data == "pass":
-        sticker = random.choice(WIN_STICKERS)
-        await bot.send_sticker(chat_id, sticker)
+        try:
+            sticker = random.choice(WIN_STICKERS)
+            await bot.send_sticker(chat_id, sticker)
+        except Exception as e:
+            print("⚠️ Failed to send sticker:", e)
 
     # Send next prediction
     await send_prediction(chat_id)
