@@ -10,10 +10,8 @@ from aiogram.client.default import DefaultBotProperties
 # ✅ Your Bot Token Here
 BOT_TOKEN = "8024704510:AAHjxDzZRCeqrwkwDkqNO1PSudfcDUxyoWg"
 
-# Win Stickers – Add more if you like (file_ids)
-WIN_STICKERS = [
-    "CAACAgUAAxkBAAEF_VBlmqpWZKXH5JxwTxJjG3h8Rx6okgACkAIAApSzmVdZfKMP3CPLkDAE"
-]
+# Start with empty sticker list
+WIN_STICKERS = []
 
 # Bot + Dispatcher
 bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
@@ -57,6 +55,30 @@ async def handle_mention(message: types.Message):
 async def handle_private_predict(message: types.Message):
     await send_prediction(message.chat.id)
 
+# Handle /file to instruct user
+@dp.message(F.chat.type == ChatType.PRIVATE, F.text == "/file")
+async def handle_file_command(message: types.Message):
+    await message.answer("📎 Send me any sticker, photo, or gif to use as WIN sticker when 'Pass' is clicked.")
+
+# Save any sticker/photo/gif sent by user
+@dp.message(F.chat.type == ChatType.PRIVATE, F.content_type.in_(["sticker", "photo", "animation"]))
+async def save_file_id(message: types.Message):
+    global WIN_STICKERS
+    file_id = None
+
+    if message.sticker:
+        file_id = message.sticker.file_id
+    elif message.photo:
+        file_id = message.photo[-1].file_id
+    elif message.animation:
+        file_id = message.animation.file_id
+
+    if file_id:
+        WIN_STICKERS.append(file_id)
+        await message.reply(f"✅ File saved!")
+    else:
+        await message.reply("❌ Unable to save file.")
+
 # Callback for Pass / Fail
 @dp.callback_query(F.data.in_({"pass", "fail"}))
 async def handle_result(callback: types.CallbackQuery):
@@ -64,11 +86,12 @@ async def handle_result(callback: types.CallbackQuery):
     await callback.answer()
 
     if callback.data == "pass":
-        try:
-            sticker = random.choice(WIN_STICKERS)
-            await bot.send_sticker(chat_id, sticker)
-        except Exception as e:
-            print("⚠️ Failed to send sticker:", e)
+        if WIN_STICKERS:
+            try:
+                sticker = random.choice(WIN_STICKERS)
+                await bot.send_sticker(chat_id, sticker)
+            except Exception as e:
+                print("⚠️ Failed to send sticker:", e)
 
     # Send next prediction
     await send_prediction(chat_id)
