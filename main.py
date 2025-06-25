@@ -29,13 +29,13 @@ def get_prediction():
     emoji = random.choice(emojis)
     action = random.choice(actions)
     multiplier = round(random.uniform(1.1, 5.0), 2)
-    
+
     prediction_line = f"{emoji} <b>{action}</b>\n<b>{fancy_multiplier(multiplier)}</b>"
 
     footer = (
-        "\n\n<blockquote>🎮 <b>Play at your own risk</b></blockquote>\n"
-        "🛡️ <blockquote>Maintain <b>Level 1 to 3</b></blockquote>\n"
-        "🔗 <b><blockquote>Register with our official link</b>, otherwise <b>hack will not work</b>.</blockquote>\n"
+        "\n\n<blockquote>🎮 Play at your own risk</blockquote>"
+        "<blockquote>🛡️ Maintain Level 1 to 3</blockquote>"
+        "<blockquote>🔗 Register with our official link, otherwise hack will not work.</blockquote>\n"
         "<a href='https://bdgslotclub.com/#/register?inviteCode=46377313830'>🚀 Click here to Register</a>"
     )
 
